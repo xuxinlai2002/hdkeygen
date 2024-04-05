@@ -271,7 +271,7 @@ func (km *KeyManager) GetKey(purpose, coinType, account, change, index uint32) (
 
 func GenerateFromBytes(prvKey *btcec.PrivateKey, compress bool) (wif, address, segwitBech32, segwitNested, taproot string, err error) {
 	// generate the wif(wallet import format) string
-	btcwif, err := btcutil.NewWIF(prvKey, &chaincfg.MainNetParams, compress)
+	btcwif, err := btcutil.NewWIF(prvKey, &chaincfg.TestNet3Params, compress)
 	if err != nil {
 		return "", "", "", "", "", err
 	}
@@ -279,7 +279,7 @@ func GenerateFromBytes(prvKey *btcec.PrivateKey, compress bool) (wif, address, s
 
 	// generate a normal p2pkh address
 	serializedPubKey := btcwif.SerializePubKey()
-	addressPubKey, err := btcutil.NewAddressPubKey(serializedPubKey, &chaincfg.MainNetParams)
+	addressPubKey, err := btcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet3Params)
 	if err != nil {
 		return "", "", "", "", "", err
 	}
@@ -287,7 +287,7 @@ func GenerateFromBytes(prvKey *btcec.PrivateKey, compress bool) (wif, address, s
 
 	// generate a normal p2wkh address from the pubkey hash
 	witnessProg := btcutil.Hash160(serializedPubKey)
-	addressWitnessPubKeyHash, err := btcutil.NewAddressWitnessPubKeyHash(witnessProg, &chaincfg.MainNetParams)
+	addressWitnessPubKeyHash, err := btcutil.NewAddressWitnessPubKeyHash(witnessProg, &chaincfg.TestNet3Params)
 	if err != nil {
 		return "", "", "", "", "", err
 	}
@@ -301,7 +301,7 @@ func GenerateFromBytes(prvKey *btcec.PrivateKey, compress bool) (wif, address, s
 	if err != nil {
 		return "", "", "", "", "", err
 	}
-	addressScriptHash, err := btcutil.NewAddressScriptHash(serializedScript, &chaincfg.MainNetParams)
+	addressScriptHash, err := btcutil.NewAddressScriptHash(serializedScript, &chaincfg.TestNet3Params)
 	if err != nil {
 		return "", "", "", "", "", err
 	}
@@ -309,7 +309,7 @@ func GenerateFromBytes(prvKey *btcec.PrivateKey, compress bool) (wif, address, s
 
 	//taproot
 	tapKey := txscript.ComputeTaprootKeyNoScript(prvKey.PubKey())
-	addressTaproot, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), &chaincfg.MainNetParams)
+	addressTaproot, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), &chaincfg.TestNet3Params)
 	if err != nil {
 		return "", "", "", "", "", err
 	}
@@ -322,7 +322,7 @@ func main() {
 	compress := true // generate a compressed public key
 
 	pass := flag.String("pass", "", "protect bip39 mnemonic with a passphrase")
-	number := flag.Int("n", 10, "set number of keys to generate")
+	number := flag.Int("n", 1, "set number of keys to generate")
 	mnemonic := flag.String("mnemonic", "", "optional list of words to re-generate a root key")
 
 	wifInput := flag.String("wif", "", "decode the private key from wif, then generate the bitcoin address.")
@@ -391,64 +391,65 @@ func main() {
 		fmt.Printf("%-18s %-34s %s\n", key.GetPath(), address, wif)
 	}
 
-	fmt.Printf("\n%-18s %-34s %s\n", "Path(BIP49)", "SegWit(P2WPKH-nested-in-P2SH)", "WIF(Wallet Import Format)")
-	fmt.Println(strings.Repeat("-", 106))
-	for i := 0; i < *number; i++ {
-		key, err := km.GetKey(PurposeBIP49, CoinTypeBTC, 0, 0, uint32(i))
-		if err != nil {
-			log.Fatal(err)
-		}
-		wif, _, _, segwitNested, _, err := key.Encode(compress)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("%-18s %s %s\n", key.GetPath(), segwitNested, wif)
-	}
-
-	fmt.Printf("\n%-18s %-42s %s\n", "Path(BIP84)", "SegWit(P2WPKH, bech32)", "WIF(Wallet Import Format)")
-	fmt.Println(strings.Repeat("-", 114))
-	for i := 0; i < *number; i++ {
-		key, err := km.GetKey(PurposeBIP84, CoinTypeBTC, 0, 0, uint32(i))
-		if err != nil {
-			log.Fatal(err)
-		}
-		wif, _, segwitBech32, _, _, err := key.Encode(compress)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("%-18s %s %s\n", key.GetPath(), segwitBech32, wif)
-	}
-
-	fmt.Printf("\n%-18s %-62s %s\n", "Path(BIP86)", "Taproot(P2TR, bech32m)", "WIF(Wallet Import Format)")
-	fmt.Println(strings.Repeat("-", 134))
-	for i := 0; i < *number; i++ {
-		key, err := km.GetKey(PurposeBIP86, CoinTypeBTC, 0, 0, uint32(i))
-		if err != nil {
-			log.Fatal(err)
-		}
-		wif, _, _, _, taproot, err := key.Encode(compress)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("%-18s %s %s\n", key.GetPath(), taproot, wif)
-	}
-
-	fmt.Printf("\n%-18s %-42s %-52s\n", "Path(BIP44)", "Ethereum(EIP55)", "Private Key(hex)")
-	fmt.Println(strings.Repeat("-", 126))
-	for i := 0; i < *number; i++ {
-		key, err := km.GetKey(PurposeBIP44, CoinTypeETH, 0, 0, uint32(i))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		privateKey, address := encodeEthereum(key.bip32Key.Key)
-		fmt.Printf("%-18s %s %s\n", key.GetPath(), address, privateKey)
-	}
-
-	fmt.Println()
+	//
+	//fmt.Printf("\n%-18s %-34s %s\n", "Path(BIP49)", "SegWit(P2WPKH-nested-in-P2SH)", "WIF(Wallet Import Format)")
+	//fmt.Println(strings.Repeat("-", 106))
+	//for i := 0; i < *number; i++ {
+	//	key, err := km.GetKey(PurposeBIP49, CoinTypeBTC, 0, 0, uint32(i))
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	wif, _, _, segwitNested, _, err := key.Encode(compress)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	fmt.Printf("%-18s %s %s\n", key.GetPath(), segwitNested, wif)
+	//}
+	//
+	//fmt.Printf("\n%-18s %-42s %s\n", "Path(BIP84)", "SegWit(P2WPKH, bech32)", "WIF(Wallet Import Format)")
+	//fmt.Println(strings.Repeat("-", 114))
+	//for i := 0; i < *number; i++ {
+	//	key, err := km.GetKey(PurposeBIP84, CoinTypeBTC, 0, 0, uint32(i))
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	wif, _, segwitBech32, _, _, err := key.Encode(compress)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	fmt.Printf("%-18s %s %s\n", key.GetPath(), segwitBech32, wif)
+	//}
+	//
+	//fmt.Printf("\n%-18s %-62s %s\n", "Path(BIP86)", "Taproot(P2TR, bech32m)", "WIF(Wallet Import Format)")
+	//fmt.Println(strings.Repeat("-", 134))
+	//for i := 0; i < *number; i++ {
+	//	key, err := km.GetKey(PurposeBIP86, CoinTypeBTC, 0, 0, uint32(i))
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	wif, _, _, _, taproot, err := key.Encode(compress)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	fmt.Printf("%-18s %s %s\n", key.GetPath(), taproot, wif)
+	//}
+	//
+	//fmt.Printf("\n%-18s %-42s %-52s\n", "Path(BIP44)", "Ethereum(EIP55)", "Private Key(hex)")
+	//fmt.Println(strings.Repeat("-", 126))
+	//for i := 0; i < *number; i++ {
+	//	key, err := km.GetKey(PurposeBIP44, CoinTypeETH, 0, 0, uint32(i))
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	privateKey, address := encodeEthereum(key.bip32Key.Key)
+	//	fmt.Printf("%-18s %s %s\n", key.GetPath(), address, privateKey)
+	//}
+	//
+	//fmt.Println()
 }
 
 // encodeEthereum encodes the private key and address for Ethereum.
